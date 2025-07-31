@@ -6,7 +6,7 @@
 /*   By: merilhan <merilhan@42kocaeli.com.tr>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/30 05:36:30 by merilhan          #+#    #+#             */
-/*   Updated: 2025/07/31 00:22:25 by merilhan         ###   ########.fr       */
+/*   Updated: 2025/07/31 14:48:16 by merilhan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -248,13 +248,7 @@ int builtin_export(t_parser *cmd, t_env **env_list)
     int i = 1;
     while (cmd->argv[i])
     {
-        char *arg = remove_quotes(cmd->argv[i]);
-        if (!arg) // Quote error
-        {
-            i++;
-            continue;
-        }
-        
+        char *arg = cmd->argv[i]; // Quote'ları kaldırma - orijinal arg'ı kullan
         char *eq_pos = ft_strchr(arg, '=');
         int valid = 1;
         int j = 0;
@@ -292,8 +286,6 @@ int builtin_export(t_parser *cmd, t_env **env_list)
         if (!valid)
         {
             printf("export: `%s': not a valid identifier\n", arg);
-            if (arg != cmd->argv[i])
-                free(arg);
             i++;
             continue;
         }
@@ -301,28 +293,43 @@ int builtin_export(t_parser *cmd, t_env **env_list)
         if (eq_pos) // Variable assignment: VAR=value
         {
             char *key = strndup(arg, eq_pos - arg);
-            char *value = eq_pos + 1;  // Value can be empty string
-            set_env_value(env_list, key, value);
+            char *value = eq_pos + 1;  // Quote'lı değeri al
+            
+            // Quote'ları kaldır
+            char *clean_value = remove_quotes(value);
+            if (clean_value)
+            {
+                set_env_value(env_list, key, clean_value);
+                if (clean_value != value)
+                    free(clean_value);
+            }
+            else
+            {
+                set_env_value(env_list, key, value); // Hata durumunda orijinal değeri kullan
+            }
             free(key);
         }
         else // Just export existing variable or create empty one
         {
-            t_env *existing = find_env(*env_list, arg);
+            // Quote'ları kaldır
+            char *clean_arg = remove_quotes(arg);
+            char *var_name = clean_arg ? clean_arg : arg;
+            
+            t_env *existing = find_env(*env_list, var_name);
             if (!existing)
             {
                 // Create new variable with empty value
-                set_env_value(env_list, arg, "");
+                set_env_value(env_list, var_name, "");
             }
-            // If variable exists, just keep its current value (already exported)
+            
+            if (clean_arg != arg)
+                free(clean_arg);
         }
         
-        if (arg != cmd->argv[i])
-            free(arg);
         i++;
     }
     return 0;
 }
-
 int builtin_unset(t_parser *cmd, t_env **env_list)
 {
     if (!cmd->argv[1])

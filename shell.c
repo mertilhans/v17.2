@@ -6,7 +6,7 @@
 /*   By: merilhan <merilhan@42kocaeli.com.tr>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/03 03:36:25 by husarpka          #+#    #+#             */
-/*   Updated: 2025/07/31 00:25:47 by merilhan         ###   ########.fr       */
+/*   Updated: 2025/07/31 14:49:09 by merilhan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -242,9 +242,31 @@ char	*ft_strchr(const char *s, int c)
 		return ((char *)s);
 	return (NULL);
 }
+
+// int is_pure_variable_expansion(char *input)
+// {
+//     if (!input)
+//         return 0;
+//     if(input[0] != '$')
+//         return 0;
+//     if(ft_strchr(input,'|') || ft_strchr(input,'<') || ft_strchr(input,'>'))
+//         return 0;
+    
+//     // $ dan sonra geçerli değişken karakteri var mı kontrol et
+//     int i = 1;
+//     if (!is_valid_char(input[i]) && input[i] != '?' && input[i] != '$')
+//         return 0; // $ dan sonra geçersiz karakter varsa expansion değil
+        
+//     return 1;
+// }
+
 int is_only_variable_name(char *input)
 {
     if (!input || input[0] != '$')
+        return 0;
+    
+    // Boşluk kontrolü - tek word olmalı
+    if (ft_strchr(input, ' ') || ft_strchr(input, '\t'))
         return 0;
     
     int i = 1;
@@ -266,22 +288,6 @@ int is_only_variable_name(char *input)
             return 0;
         i++;
     }
-    return 1;
-}
-int is_pure_variable_expansion(char *input)
-{
-    if (!input)
-        return 0;
-    if(input[0] != '$')
-        return 0;
-    if(ft_strchr(input,'|') || ft_strchr(input,'<') || ft_strchr(input,'>'))
-        return 0;
-    
-    // $ dan sonra geçerli değişken karakteri var mı kontrol et
-    int i = 1;
-    if (!is_valid_char(input[i]) && input[i] != '?' && input[i] != '$')
-        return 0; // $ dan sonra geçersiz karakter varsa expansion değil
-        
     return 1;
 }
 
@@ -317,7 +323,7 @@ void process_and_execute(char *input, char **env, t_env *env_list)
         
         printf("DEBUG: Looking for variable '%s'\n", var_name);
         
-        if (env_var && env_var->value)
+        if (env_var && env_var->value && strlen(env_var->value) > 0)
         {
             printf("DEBUG: Found variable value: '%s'\n", env_var->value);
             printf("%s: command not found\n", env_var->value);
@@ -346,13 +352,13 @@ void process_and_execute(char *input, char **env, t_env *env_list)
             printf("DEBUG: Recursively calling with expanded string\n");
             // Expanded string'i yeni bir komut olarak işle
             process_and_execute(expanded, env, env_list);
-            gc_free(expanded);
+            free(expanded);  // gc_free yerine free kullan
             return;
         }
         else
         {
             if (expanded)
-                gc_free(expanded);
+                free(expanded);  // gc_free yerine free kullan
             printf(": command not found\n");
             g_last_exit_status = 127;
             return;
